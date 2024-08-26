@@ -1,8 +1,5 @@
 package com.grimsteel.clearpasswifi.ui
 
-import android.os.strictmode.NonSdkApiUsedViolation
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -19,11 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -41,14 +36,22 @@ enum class NavDestination(val id: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainLayout() {
-    var currentScreen: NavDestination by remember { mutableStateOf(NavDestination.Home) }
+    val currentScreen: NavDestination by remember { mutableStateOf(NavDestination.Home) }
     val navController = rememberNavController()
+
+    // figure out what t shows up in the app bar
+    val title = when (currentScreen) {
+        NavDestination.Home -> R.string.app_name
+        NavDestination.Import -> R.string.add_config
+        NavDestination.Configuring -> R.string.configuring
+        else -> R.string.edit
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
+                title = { Text(stringResource(title)) },
                 colors = topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.primary

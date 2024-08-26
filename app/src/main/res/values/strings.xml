@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Clearpass Wifi</string>
+    <string name="add_config">Add Configuration</string>
+    <string name="specify_manually">Manual:</string>
+    <string name="import_file">Import from file:</string>
+    <string name="configuring">Configuring Network</string>
+    <string name="edit">Network Properties</string>
+    <string name="network_url">Onboarding URL</string>
+    <string name="network_otp">Onboarding OTP</string>
 </resources>
