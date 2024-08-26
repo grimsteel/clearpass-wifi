@@ -14,13 +14,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.grimsteel.clearpasswifi.R
 import com.grimsteel.clearpasswifi.ui.screens.*
@@ -36,8 +35,10 @@ enum class NavDestination(val id: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainLayout() {
-    val currentScreen: NavDestination by remember { mutableStateOf(NavDestination.Home) }
     val navController = rememberNavController()
+    val currentBackStack by navController.currentBackStackEntryAsState()
+    val currentDestination = currentBackStack?.destination
+    val currentScreen = NavDestination.entries.find { it.id == currentDestination?.route }
 
     // figure out what t shows up in the app bar
     val title = when (currentScreen) {
