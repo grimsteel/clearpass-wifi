@@ -3,7 +3,8 @@
     <string name="add_config">Add Configuration</string>
     <string name="specify_manually">Add manually:</string>
     <string name="add">Add</string>
-    <string name="select_file">Select file</string>
+    <string name="select_onboard_file">quick1x config file</string>
+    <string name="select_xml_file">XML credentials file</string>
     <string name="import_file">Import from file:</string>
     <string name="configuring">Configuring Network</string>
     <string name="edit">Network Properties</string>

@@ -2,6 +2,7 @@ package com.grimsteel.clearpasswifi.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -40,13 +41,22 @@ fun ImportScreen() {
                 modifier = Modifier.padding(16.dp, 16.dp, 16.dp, 8.dp)
             )
 
-            Button(
-                onClick = { /*TODO*/ },
-                modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 16.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.select_file)
-                )
+            Row(modifier = Modifier.padding(16.dp, 8.dp, 16.dp, 16.dp)) {
+                Button(
+                    onClick = { /*TODO*/ },
+                ) {
+                    Text(
+                        text = stringResource(R.string.select_onboard_file)
+                    )
+                }
+
+                Button(
+                    onClick = { /*TODO*/ },
+                ) {
+                    Text(
+                        text = stringResource(R.string.select_xml_file)
+                    )
+                }
             }
         }
 

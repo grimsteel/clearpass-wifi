@@ -11,6 +11,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import org.json.JSONArray
 import org.json.JSONObject
 import org.xmlpull.v1.XmlPullParser
 import java.io.BufferedReader
@@ -59,7 +60,7 @@ class NetworkOnboard {
         body.put("auth_username", null)
         body.put("auth_password", null)
         body.put("mac_address", "")
-        body.append("network_interfaces", JSONObject())
+        body.put("network_interfaces", JSONArray({ JSONObject() }))
         body.put("device_type", "Android")
         body.put("product_name", "Better Clearpass")
         body.put("product_version", 2)
@@ -79,5 +80,8 @@ class NetworkOnboard {
         val parser = Xml.newPullParser()
         parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
         parser.setInput(response.body())
+
+        val credentialParser = CredentialParser(parser)
+        credentialParser.parse()
     }
 }

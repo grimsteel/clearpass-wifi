@@ -1,5 +1,6 @@
 package com.grimsteel.clearpasswifi.data
 
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.security.cert.X509Certificate
@@ -10,6 +11,8 @@ data class Network(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val ssid: String,
+
+    @Embedded
     val organization: Organization?,
     val createdAt: Date,
 
