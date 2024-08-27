@@ -13,6 +13,8 @@ roomRuntime = "2.6.1"
 roomKtx = "2.6.1"
 roomCompiler = "2.6.1"
 ksp = "1.9.20-1.0.14"
+ktorClientCore = "3.0.0-beta-2"
+ktorClientCio = "3.0.0-beta-2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -33,6 +35,8 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "roomRuntime" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "roomCompiler" }
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktorClientCore" }
+ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio", version.ref = "ktorClientCio" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
