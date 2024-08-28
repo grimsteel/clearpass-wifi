@@ -3,17 +3,22 @@ package com.grimsteel.clearpasswifi.ui
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -28,7 +33,6 @@ import com.grimsteel.clearpasswifi.ui.theme.AppTheme
 enum class NavDestination(val id: String) {
     Home("home"),
     Import("import"),
-    Configuring("configuring"),
     Edit("edit")
 }
 
@@ -39,12 +43,12 @@ fun MainLayout() {
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentDestination = currentBackStack?.destination
     val currentScreen = NavDestination.entries.find { it.id == currentDestination?.route }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // figure out what t shows up in the app bar
     val title = when (currentScreen) {
         NavDestination.Home -> R.string.app_name
         NavDestination.Import -> R.string.add_config
-        NavDestination.Configuring -> R.string.configuring
         else -> R.string.edit
     }
 
@@ -56,7 +60,15 @@ fun MainLayout() {
                 colors = topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.primary
-                )
+                ),
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -65,6 +77,9 @@ fun MainLayout() {
                     Icon(Icons.Rounded.Add, contentDescription = "Add")
                 }
             }
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
         }
     ) { innerPadding ->
         NavHost(
@@ -79,10 +94,7 @@ fun MainLayout() {
                 EditScreen()
             }
             composable(route = NavDestination.Import.id) {
-                ImportScreen()
-            }
-            composable(route = NavDestination.Configuring.id) {
-                ConfiguringScreen()
+                ImportScreen(snackbarHostState)
             }
         }
     }
