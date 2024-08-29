@@ -21,7 +21,8 @@ import java.net.URL
 data class ImportScreenUiState(
     val networkOtp: String = "",
     val networkUrl: String = "",
-    val dialogErrorMessage: String = ""
+    val dialogErrorMessage: String = "",
+    val loading: Boolean = false
 )
 
 class ImportConfigureViewModel : ViewModel() {
@@ -29,6 +30,8 @@ class ImportConfigureViewModel : ViewModel() {
     val importScreenState: StateFlow<ImportScreenUiState> = _importScreenState.asStateFlow()
 
     fun useQuick1xFile(context: Context, fileUri: Uri) {
+        setLoading(true)
+
         // read the file
         val stringBuilder = StringBuilder()
         context.contentResolver.openInputStream(fileUri)?.use { inputStream ->
@@ -59,6 +62,8 @@ class ImportConfigureViewModel : ViewModel() {
             )
                 .show()
         }
+
+        setLoading(false)
     }
 
     fun updateNetworkUrl(url: String) {
@@ -79,8 +84,16 @@ class ImportConfigureViewModel : ViewModel() {
         }
     }
 
+    fun setLoading(loading: Boolean) {
+        _importScreenState.update {
+            it.copy(loading = loading)
+        }
+    }
+
     // load credentials from
     suspend fun loadCredentials(context: Context) {
+        setLoading(true)
+
         val state = _importScreenState.value
         if (state.networkOtp.isNotEmpty() && state.networkUrl.isNotEmpty()) {
             // make sure the url is actually a URL
@@ -100,7 +113,10 @@ class ImportConfigureViewModel : ViewModel() {
                     .show()
             } catch (e: RuntimeException) {
                 Log.w("ImportViewModel", "Runtime exception: $e")
+
                 throw e
+            } finally {
+                setLoading(false)
             }
         } else {
             Toast.makeText(
@@ -110,5 +126,7 @@ class ImportConfigureViewModel : ViewModel() {
             )
                 .show()
         }
+
+        setLoading(false)
     }
 }

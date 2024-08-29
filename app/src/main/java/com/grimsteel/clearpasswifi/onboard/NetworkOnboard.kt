@@ -1,20 +1,23 @@
 package com.grimsteel.clearpasswifi.onboard
 
+import android.util.Log
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.Reader
 import java.net.URL
 import java.util.Date
 
+class OnboardError(message: String, cause: Throwable?) : RuntimeException(message, cause)
+
 /// Class to get network credentials from onboarding parameters
-suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): Reader {
+suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): ByteArray {
     val client = HttpClient(CIO)
 
     // prepare the request body
@@ -34,10 +37,21 @@ suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): Reader {
 
     val bodyString = body.toString()
 
-    val response = client.post(onboardUrl) {
-        contentType(ContentType.Application.Json)
-        setBody(bodyString)
-    }
+    try {
+        val response = client.post(onboardUrl) {
+            contentType(ContentType.Application.Json)
+            setBody(bodyString)
+        }
 
-    return response.body()
+        // check the response status code
+        if (response.status != HttpStatusCode.OK) {
+            Log.e("NetworkOnboard", "Status code is ${response.status}")
+            throw OnboardError("Onboarding server returned an error: ${response.status}", null)
+        }
+
+        return response.body()
+    } catch (e: RuntimeException) {
+        Log.e("NetworkOnboard", "Runtime exception while fetching data: $e")
+        throw OnboardError("${e.javaClass.simpleName}: ${e.message}", e)
+    }
 }

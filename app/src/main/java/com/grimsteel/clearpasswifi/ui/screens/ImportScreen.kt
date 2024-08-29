@@ -29,11 +29,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.grimsteel.clearpasswifi.R
-import com.grimsteel.clearpasswifi.ui.theme.AppTheme
+import com.grimsteel.clearpasswifi.onboard.OnboardError
 import kotlinx.coroutines.launch
 
 @Composable
@@ -42,6 +41,26 @@ fun ImportScreen(snackbar: SnackbarHostState, vm: ImportConfigureViewModel = vie
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
+    // closure to load credentials and show any errors
+    val loadCredentials = {
+        coroutineScope.launch {
+            try {
+                vm.loadCredentials(context)
+            } catch (e: OnboardError) {
+                // generally a network error
+                val result = snackbar.showSnackbar(
+                    context.getString(R.string.network_error),
+                    context.getString(R.string.details),
+                    duration = SnackbarDuration.Long
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    // show dialog
+                    vm.updateDialogErrorMessage(e.message ?: "No message")
+                }
+            }
+        }
+    }
 
     val xmlCredFilePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -53,22 +72,7 @@ fun ImportScreen(snackbar: SnackbarHostState, vm: ImportConfigureViewModel = vie
     ) { uri ->
         if (uri != null) {
             vm.useQuick1xFile(context, uri)
-            coroutineScope.launch {
-                try {
-                    vm.loadCredentials(context)
-                } catch (e: RuntimeException) {
-                    // generally a network error
-                    val result = snackbar.showSnackbar(
-                        context.getString(R.string.network_error),
-                        context.getString(R.string.details),
-                        duration = SnackbarDuration.Long
-                    )
-                    if (result == SnackbarResult.ActionPerformed) {
-                        // show dialog
-                        vm.updateDialogErrorMessage("${e.javaClass.simpleName}: ${e.message}")
-                    }
-                }
-            }
+            loadCredentials()
         }
     }
 
@@ -90,7 +94,8 @@ fun ImportScreen(snackbar: SnackbarHostState, vm: ImportConfigureViewModel = vie
 
             Button(
                 onClick = { quick1xConfigFilePicker.launch("*/*") },
-                modifier = Modifier.padding(16.dp, 8.dp)
+                modifier = Modifier.padding(16.dp, 8.dp),
+                enabled = !uiState.loading
             ) {
                 Text(
                     text = stringResource(R.string.select_onboard_file)
@@ -99,7 +104,8 @@ fun ImportScreen(snackbar: SnackbarHostState, vm: ImportConfigureViewModel = vie
 
             FilledTonalButton(
                 onClick = { xmlCredFilePicker.launch("*/*") },
-                modifier = Modifier.padding(16.dp, 0.dp, 16.dp, 16.dp)
+                modifier = Modifier.padding(16.dp, 0.dp, 16.dp, 16.dp),
+                enabled = !uiState.loading
             ) {
                 Text(
                     text = stringResource(R.string.select_xml_file)
@@ -135,12 +141,9 @@ fun ImportScreen(snackbar: SnackbarHostState, vm: ImportConfigureViewModel = vie
             )
 
             Button(
-                onClick = {
-                    coroutineScope.launch {
-                        vm.loadCredentials(context)
-                    }
-                },
-                modifier = Modifier.padding(16.dp)
+                onClick = { loadCredentials() },
+                modifier = Modifier.padding(16.dp),
+                enabled = !uiState.loading
             ) {
                 Text(
                     text = stringResource(R.string.add)
