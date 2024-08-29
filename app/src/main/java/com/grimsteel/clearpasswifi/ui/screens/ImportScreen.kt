@@ -65,7 +65,9 @@ fun ImportScreen(snackbar: SnackbarHostState, vm: ImportConfigureViewModel = vie
     val xmlCredFilePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
-
+        if (uri != null) {
+            vm.useXmlCredsFile(context, uri)
+        }
     }
     val quick1xConfigFilePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()

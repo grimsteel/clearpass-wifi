@@ -11,13 +11,14 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.InputStream
 import java.net.URL
 import java.util.Date
 
 class OnboardError(message: String, cause: Throwable?) : RuntimeException(message, cause)
 
 /// Class to get network credentials from onboarding parameters
-suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): ByteArray {
+suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): InputStream {
     val client = HttpClient(CIO)
 
     // prepare the request body

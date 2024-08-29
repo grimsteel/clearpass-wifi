@@ -6,6 +6,8 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import com.grimsteel.clearpasswifi.R
+import com.grimsteel.clearpasswifi.data.Network
+import com.grimsteel.clearpasswifi.onboard.CredentialParser
 import com.grimsteel.clearpasswifi.onboard.getCredentials
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,12 +31,13 @@ class ImportConfigureViewModel : ViewModel() {
     private val _importScreenState = MutableStateFlow(ImportScreenUiState())
     val importScreenState: StateFlow<ImportScreenUiState> = _importScreenState.asStateFlow()
 
-    fun useQuick1xFile(context: Context, fileUri: Uri) {
-        setLoading(true)
+    private val _createdNetwork = MutableStateFlow<Network?>(null)
+    val createdNetwork: StateFlow<Network?> = _createdNetwork.asStateFlow()
 
+    fun readFileString(context: Context, uri: Uri): String {
         // read the file
         val stringBuilder = StringBuilder()
-        context.contentResolver.openInputStream(fileUri)?.use { inputStream ->
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
             BufferedReader(InputStreamReader(inputStream)).use { reader ->
                 var line: String? = reader.readLine()
                 while (line != null) {
@@ -43,10 +46,17 @@ class ImportConfigureViewModel : ViewModel() {
                 }
             }
         }
+        return stringBuilder.toString()
+    }
+
+    fun useQuick1xFile(context: Context, fileUri: Uri) {
+        setLoading(true)
+
+        val contents = readFileString(context, fileUri)
 
         // parse it as json
         try {
-            val parsedJson = JSONObject(stringBuilder.toString())
+            val parsedJson = JSONObject(contents)
             val networkUrl = parsedJson.getString("network.url")
             val networkOtp = parsedJson.getString("network.otp")
             _importScreenState.update {
@@ -61,6 +71,17 @@ class ImportConfigureViewModel : ViewModel() {
                 Toast.LENGTH_LONG
             )
                 .show()
+        }
+
+        setLoading(false)
+    }
+
+    fun useXmlCredsFile(context: Context, fileUri: Uri) {
+        setLoading(true)
+
+        context.contentResolver.openInputStream(fileUri)?.use {
+            val parser = CredentialParser(it)
+            parser.parse()
         }
 
         setLoading(false)
@@ -84,7 +105,7 @@ class ImportConfigureViewModel : ViewModel() {
         }
     }
 
-    fun setLoading(loading: Boolean) {
+    private fun setLoading(loading: Boolean) {
         _importScreenState.update {
             it.copy(loading = loading)
         }
@@ -111,10 +132,6 @@ class ImportConfigureViewModel : ViewModel() {
                     Toast.LENGTH_SHORT
                 )
                     .show()
-            } catch (e: RuntimeException) {
-                Log.w("ImportViewModel", "Runtime exception: $e")
-
-                throw e
             } finally {
                 setLoading(false)
             }
