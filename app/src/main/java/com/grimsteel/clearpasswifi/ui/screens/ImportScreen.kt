@@ -32,15 +32,29 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.grimsteel.clearpasswifi.R
+import com.grimsteel.clearpasswifi.onboard.CredentialParseError
 import com.grimsteel.clearpasswifi.onboard.OnboardError
+import com.grimsteel.clearpasswifi.ui.MainViewModelProvider
 import kotlinx.coroutines.launch
 
 @Composable
-fun ImportScreen(snackbar: SnackbarHostState, vm: ImportConfigureViewModel = viewModel()) {
+fun ImportScreen(snackbar: SnackbarHostState, vm: ImportViewModel = viewModel(factory = MainViewModelProvider.Factory)) {
     val uiState by vm.importScreenState.collectAsState()
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
+    val showSnackbar: suspend (e: Exception, message: String) -> Unit = { e, message ->
+        val result = snackbar.showSnackbar(
+            message,
+            context.getString(R.string.details),
+            duration = SnackbarDuration.Long
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            // show dialog
+            vm.updateDialogErrorMessage(e.message ?: "No message")
+        }
+    }
 
     // closure to load credentials and show any errors
     val loadCredentials = {
@@ -48,16 +62,9 @@ fun ImportScreen(snackbar: SnackbarHostState, vm: ImportConfigureViewModel = vie
             try {
                 vm.loadCredentials(context)
             } catch (e: OnboardError) {
-                // generally a network error
-                val result = snackbar.showSnackbar(
-                    context.getString(R.string.network_error),
-                    context.getString(R.string.details),
-                    duration = SnackbarDuration.Long
-                )
-                if (result == SnackbarResult.ActionPerformed) {
-                    // show dialog
-                    vm.updateDialogErrorMessage(e.message ?: "No message")
-                }
+                showSnackbar(e, context.getString(R.string.network_error))
+            } catch (e: CredentialParseError) {
+                showSnackbar(e, context.getString(R.string.parse_error))
             }
         }
     }
@@ -66,7 +73,13 @@ fun ImportScreen(snackbar: SnackbarHostState, vm: ImportConfigureViewModel = vie
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         if (uri != null) {
-            vm.useXmlCredsFile(context, uri)
+            coroutineScope.launch {
+                try {
+                    vm.useXmlCredentialsFile(context, uri)
+                } catch (e: CredentialParseError) {
+                    showSnackbar(e, context.getString(R.string.parse_error))
+                }
+            }
         }
     }
     val quick1xConfigFilePicker = rememberLauncherForActivityResult(

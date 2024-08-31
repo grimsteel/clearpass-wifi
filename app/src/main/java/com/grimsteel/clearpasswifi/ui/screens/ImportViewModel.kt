@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import com.grimsteel.clearpasswifi.R
 import com.grimsteel.clearpasswifi.data.Network
+import com.grimsteel.clearpasswifi.data.NetworkDao
 import com.grimsteel.clearpasswifi.onboard.CredentialParser
 import com.grimsteel.clearpasswifi.onboard.getCredentials
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,14 +28,11 @@ data class ImportScreenUiState(
     val loading: Boolean = false
 )
 
-class ImportConfigureViewModel : ViewModel() {
+class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
     private val _importScreenState = MutableStateFlow(ImportScreenUiState())
     val importScreenState: StateFlow<ImportScreenUiState> = _importScreenState.asStateFlow()
 
-    private val _createdNetwork = MutableStateFlow<Network?>(null)
-    val createdNetwork: StateFlow<Network?> = _createdNetwork.asStateFlow()
-
-    fun readFileString(context: Context, uri: Uri): String {
+    private fun readFileString(context: Context, uri: Uri): String {
         // read the file
         val stringBuilder = StringBuilder()
         context.contentResolver.openInputStream(uri)?.use { inputStream ->
@@ -47,6 +45,15 @@ class ImportConfigureViewModel : ViewModel() {
             }
         }
         return stringBuilder.toString()
+    }
+
+    private suspend fun handleParser(parser: CredentialParser) {
+        // parse the credentials file and store data
+
+        parser.parse()
+        val network = parser.toNetwork()
+        parser.storePrivateKeys()
+        networkDao.insert(network)
     }
 
     fun useQuick1xFile(context: Context, fileUri: Uri) {
@@ -76,14 +83,13 @@ class ImportConfigureViewModel : ViewModel() {
         setLoading(false)
     }
 
-    fun useXmlCredsFile(context: Context, fileUri: Uri) {
+    suspend fun useXmlCredentialsFile(context: Context, fileUri: Uri) {
         setLoading(true)
 
         try {
-            val network = context.contentResolver.openInputStream(fileUri)?.use {
+            context.contentResolver.openInputStream(fileUri)?.use {
                 val parser = CredentialParser(it)
-                parser.parse()
-                parser.toNetwork(null)
+                handleParser(parser)
             }
         } finally {
             setLoading(false)
@@ -128,9 +134,7 @@ class ImportConfigureViewModel : ViewModel() {
                     state.networkOtp
                 )
                 val parser = CredentialParser(response)
-                parser.parse()
-                // TODO: use logo URL from onboard file
-                val network = parser.toNetwork(null)
+                handleParser(parser)
             } catch (e: MalformedURLException) {
                 Log.w("ImportViewModel", "Invalid URL: $e")
                 Toast.makeText(

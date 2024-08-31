@@ -6,7 +6,6 @@
     <string name="select_onboard_file">Select quick1x config</string>
     <string name="select_xml_file">Select XML credentials file</string>
     <string name="import_file">Import from file:</string>
-    <string name="configuring">Configuring Network</string>
     <string name="edit">Network Properties</string>
     <string name="network_url">Onboarding URL</string>
     <string name="network_otp">Onboarding OTP</string>
@@ -18,4 +17,5 @@
     <string name="error">Error</string>
     <string name="ok">OK</string>
     <string name="back">Back</string>
+    <string name="parse_error">Could not parse credentials file</string>
 </resources>
