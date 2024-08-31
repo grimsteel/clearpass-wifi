@@ -2,14 +2,24 @@ package com.grimsteel.clearpasswifi.onboard
 
 import android.util.Log
 import android.util.Xml
+import com.grimsteel.clearpasswifi.data.Network
+import com.grimsteel.clearpasswifi.data.Organization
+import com.grimsteel.clearpasswifi.data.WpaMethod
 import org.xmlpull.v1.XmlPullParser
+import org.xmlpull.v1.XmlPullParserException
 import java.io.InputStream
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
+import java.util.Date
 
-class CredentialParser(val parser: XmlPullParser) {
+class CredentialParseError(message: String, cause: Throwable?) : Exception(message, cause)
+
+class CredentialParser(private val parser: XmlPullParser) {
     private var caCert: String? = null
     private var clientCertKey: String? = null
     private var clientKeyPassword: String? = null
     private var ssid: String? = null
+    private var organizationName: String? = null
     private var hidden = false
     private var domainNames: MutableList<String> = mutableListOf()
     private var userName: String? = null
@@ -25,14 +35,11 @@ class CredentialParser(val parser: XmlPullParser) {
     }
 
     private fun skipCurrentTag() {
-        if (parser.isEmptyElementTag) return
-
         var depth = 1
         while (depth > 0) {
             when (parser.next()) {
                 XmlPullParser.START_TAG -> {
-                    if (!parser.isEmptyElementTag)
-                        depth++
+                    depth++
                 }
                 XmlPullParser.END_TAG -> depth--
             }
@@ -49,7 +56,7 @@ class CredentialParser(val parser: XmlPullParser) {
         parser.nextTag()
         while (parser.name == "key") {
             when (parser.nextText()) {
-                "AcceptEapTypes" -> {
+                "AcceptEAPTypes" -> {
                     // parse an <array> of <integer>s
 
                     nextRequire("array")
@@ -80,6 +87,7 @@ class CredentialParser(val parser: XmlPullParser) {
                     }
                 }
                 else -> {
+                    parser.nextTag()
                     skipCurrentTag()
                 }
             }
@@ -105,6 +113,10 @@ class CredentialParser(val parser: XmlPullParser) {
                     nextRequire("string")
                     payloadType = parser.nextText()
                 }
+                "PayloadOrganization" -> {
+                    nextRequire("string")
+                    organizationName = parser.nextText()
+                }
                 "Password" -> {
                     nextRequire("string")
                     password = parser.nextText()
@@ -121,12 +133,15 @@ class CredentialParser(val parser: XmlPullParser) {
                     parser.nextTag()
                     // <true/> or <false/>
                     hidden = parser.name == "true"
+                    // move to end tag
+                    parser.nextTag()
                 }
                 "EAPClientConfiguration" -> {
                     nextRequire("dict")
                     parseEapConfig()
                 }
                 else -> {
+                    parser.nextTag()
                     skipCurrentTag()
                 }
             }
@@ -147,7 +162,16 @@ class CredentialParser(val parser: XmlPullParser) {
         }
     }
 
+    // parse with error wrapping
     fun parse() {
+        try {
+            rawParse()
+        } catch (e: XmlPullParserException) {
+            throw CredentialParseError("XML parse error: ${e.message}", e)
+        }
+    }
+
+    private fun rawParse() {
         nextRequire("plist")
         nextRequire("dict")
 
@@ -177,6 +201,7 @@ class CredentialParser(val parser: XmlPullParser) {
                 }
                 else -> {
                     // just skip this tag
+                    parser.nextTag()
                     skipCurrentTag()
                 }
             }
@@ -184,5 +209,55 @@ class CredentialParser(val parser: XmlPullParser) {
             // move to next <key>
             parser.nextTag()
         }
+    }
+
+    fun toNetwork(organizationLogo: String?): Network {
+        // TODO: create credential parser error type
+        // throw errors for incorrect wpa method/missing fields
+        // but create network
+        // include method to add private key to cert store
+
+        val wpaMethod = when (encryptionType) {
+            "WPA2" -> {
+                // right now we only support EAP-TLS
+                when (eapType) {
+                    13 -> WpaMethod.EapTls
+                    else -> throw CredentialParseError(
+                    "Unsupported WPA-EAP type: $eapType",
+                        null
+                    )
+                }
+            }
+            else -> throw CredentialParseError(
+                "Unsupported Wi-Fi encryption method: $encryptionType",
+                null
+            )
+        }
+
+        val organization = Organization(
+            name = organizationName ?: "Unknown organization",
+            logoUrl = organizationLogo,
+            landingPage = landingPage
+        )
+
+        return Network(
+            ssid = ssid ?: throw CredentialParseError(
+                "Could not find SSID",
+                null
+            ),
+            createdAt = Date(),
+            wpaMethod = wpaMethod,
+            domainSuffixMatch = domainNames.joinToString(";"),
+            organization = organization,
+            // password not needed for EAP-TLS
+            password = null,
+            identity = userName ?: throw CredentialParseError(
+                "Could not find EAP identity",
+                null
+            ),
+            // TODO: figure out how to parse
+            caCertificate = null,
+            clientCertificate = null
+        )
     }
 }

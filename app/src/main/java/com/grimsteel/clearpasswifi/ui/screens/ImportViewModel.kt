@@ -79,12 +79,15 @@ class ImportConfigureViewModel : ViewModel() {
     fun useXmlCredsFile(context: Context, fileUri: Uri) {
         setLoading(true)
 
-        context.contentResolver.openInputStream(fileUri)?.use {
-            val parser = CredentialParser(it)
-            parser.parse()
+        try {
+            val network = context.contentResolver.openInputStream(fileUri)?.use {
+                val parser = CredentialParser(it)
+                parser.parse()
+                parser.toNetwork(null)
+            }
+        } finally {
+            setLoading(false)
         }
-
-        setLoading(false)
     }
 
     fun updateNetworkUrl(url: String) {
@@ -111,7 +114,7 @@ class ImportConfigureViewModel : ViewModel() {
         }
     }
 
-    // load credentials from
+    // load credentials from the set URL/OTP
     suspend fun loadCredentials(context: Context) {
         setLoading(true)
 
@@ -124,6 +127,10 @@ class ImportConfigureViewModel : ViewModel() {
                     url,
                     state.networkOtp
                 )
+                val parser = CredentialParser(response)
+                parser.parse()
+                // TODO: use logo URL from onboard file
+                val network = parser.toNetwork(null)
             } catch (e: MalformedURLException) {
                 Log.w("ImportViewModel", "Invalid URL: $e")
                 Toast.makeText(

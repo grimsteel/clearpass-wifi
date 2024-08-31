@@ -23,6 +23,5 @@ data class Network(
 
     val identity: String?,
     val password: String?,
-    val altSubjectMatch: String?,
     val domainSuffixMatch: String?
 )
