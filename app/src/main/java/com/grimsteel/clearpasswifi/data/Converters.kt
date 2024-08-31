@@ -30,11 +30,11 @@ class Converters {
     @TypeConverter
     fun toX509Cert(value: ByteArray?): X509Certificate? {
         val factory = CertificateFactory.getInstance("X.509")
-        return factory.generateCertificate(ByteArrayInputStream(value)) as X509Certificate
+        return factory.generateCertificate(ByteArrayInputStream(value)) as? X509Certificate
     }
 
     @TypeConverter
-    fun fromWpaMethod(value: X509Certificate?): ByteArray? {
+    fun fromX509Cert(value: X509Certificate?): ByteArray? {
         return value?.encoded
     }
 }

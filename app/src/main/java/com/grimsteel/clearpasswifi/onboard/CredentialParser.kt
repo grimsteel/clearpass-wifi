@@ -17,6 +17,7 @@ import java.security.KeyStore
 import java.security.KeyStore.PrivateKeyEntry
 import java.security.PrivateKey
 import java.util.Date
+import java.util.UUID
 
 class CredentialParseError(message: String, cause: Throwable?) : Exception(message, cause)
 
@@ -34,6 +35,10 @@ class CredentialParser(private val parser: XmlPullParser) {
     private var encryptionType: String? = null
     // 13 = EAP-TLS, 21 = EAP-TTLS, 25 = PEAP
     private var eapType: Int? = null
+
+    private val id = lazy {
+        UUID.randomUUID().toString()
+    }
 
     constructor(contents: InputStream) : this(Xml.newPullParser()){
         this.parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
@@ -276,21 +281,24 @@ class CredentialParser(private val parser: XmlPullParser) {
             landingPage = landingPage
         )
 
+        val ssid = this.ssid ?: throw CredentialParseError(
+            "Could not find SSID",
+            null
+        )
+        val identity = this.userName ?: throw CredentialParseError(
+            "Could not find EAP identity",
+            null
+        )
+
         return Network(
-            ssid = ssid ?: throw CredentialParseError(
-                "Could not find SSID",
-                null
-            ),
+            ssid = ssid,
             createdAt = Date(),
             wpaMethod = wpaMethod,
             domainSuffixMatch = domainNames.joinToString(";"),
             organization = organization,
             // password not needed for EAP-TLS
             password = null,
-            identity = userName ?: throw CredentialParseError(
-                "Could not find EAP identity",
-                null
-            ),
+            identity = identity,
             caCertificate = caCert ?: throw CredentialParseError(
                 "Missing CA certificate",
                 null
@@ -298,12 +306,15 @@ class CredentialParser(private val parser: XmlPullParser) {
             clientCertificate = clientCert ?: throw CredentialParseError(
                 "Missing client certificate",
                 null
-            )
+            ),
+            id = id.value,
+            // by default, ssid + identity
+            displayName = "$ssid ($identity)"
         )
     }
 
-    fun storePrivateKeys(networkId: Int) {
-        // store private keys in the system KeyStore, identified by the specified networkId
+    fun storePrivateKeys() {
+        // store private keys in the system KeyStore
 
         val ks = KeyStore.getInstance("AndroidKeyStore")
         // no load parameters for the AndroidKeyStore
@@ -326,7 +337,7 @@ class CredentialParser(private val parser: XmlPullParser) {
         val pkKeyEntry = PrivateKeyEntry(clientKey, arrayOf(clientCert))
 
         // EAP-TLS: client key
-        val pkAlias = Network.EAP_TLS_PK_ALIAS.format(networkId)
+        val pkAlias = Network.EAP_TLS_PK_ALIAS.format(id.value)
         ks.setEntry(pkAlias, pkKeyEntry, protection)
     }
 }

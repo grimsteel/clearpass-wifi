@@ -8,8 +8,10 @@ import java.util.Date
 
 @Entity(tableName = "networks")
 data class Network(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    @PrimaryKey
+    val id: String,
+
+    val displayName: String,
     val ssid: String,
 
     @Embedded
