@@ -255,7 +255,7 @@ class CredentialParser(private val parser: XmlPullParser) {
         }
     }
 
-    fun toNetwork(organizationLogo: String?): Network {
+    fun toNetwork(): Network {
         // include method to add private key to cert store
 
         val wpaMethod = when (encryptionType) {
@@ -277,7 +277,6 @@ class CredentialParser(private val parser: XmlPullParser) {
 
         val organization = Organization(
             name = organizationName ?: "Unknown organization",
-            logoUrl = organizationLogo,
             landingPage = landingPage
         )
 
