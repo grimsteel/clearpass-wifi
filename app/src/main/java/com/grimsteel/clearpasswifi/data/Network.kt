@@ -24,4 +24,8 @@ data class Network(
     val identity: String?,
     val password: String?,
     val domainSuffixMatch: String?
-)
+) {
+    companion object {
+        const val EAP_TLS_PK_ALIAS = "%d-eap-tls-private-key"
+    }
+}

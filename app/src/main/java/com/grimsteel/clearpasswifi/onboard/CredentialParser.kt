@@ -1,5 +1,7 @@
 package com.grimsteel.clearpasswifi.onboard
 
+import android.os.Build
+import android.security.keystore.KeyProtection
 import android.util.Xml
 import com.grimsteel.clearpasswifi.data.Network
 import com.grimsteel.clearpasswifi.data.Organization
@@ -12,14 +14,16 @@ import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import android.util.Base64
 import java.security.KeyStore
+import java.security.KeyStore.PrivateKeyEntry
+import java.security.PrivateKey
 import java.util.Date
 
 class CredentialParseError(message: String, cause: Throwable?) : Exception(message, cause)
 
 class CredentialParser(private val parser: XmlPullParser) {
-    private var caCert: String? = null
-    private var clientCertKey: String? = null
-    private var clientKeyPassword: String? = null
+    private var caCert: X509Certificate? = null
+    private var clientCert: X509Certificate? = null
+    private var clientKey: PrivateKey? = null
     private var ssid: String? = null
     private var organizationName: String? = null
     private var hidden = false
@@ -156,12 +160,43 @@ class CredentialParser(private val parser: XmlPullParser) {
             "com.apple.security.root" -> {
                 // CA Certificate
 
-                caCert = payloadContent
+                // parse the CA
+                caCert = CertificateFactory.getInstance("X.509")
+                    .generateCertificate(
+                        ByteArrayInputStream(
+                            Base64.decode(payloadContent ?: throw CredentialParseError(
+                                "Missing CA certificate",
+                                null
+                            ), Base64.DEFAULT)
+                        )
+                    ) as? X509Certificate
             }
             "com.apple.security.pkcs12" -> {
+                // client cert/key bundle
 
-                clientCertKey = payloadContent
-                clientKeyPassword = password
+                val keyPassword = password?.toCharArray() ?: throw CredentialParseError(
+                    "Missing client key encryption password",
+                    null
+                )
+
+                // decode/parse the client cert/key bundle
+                val pkcsKeyStore = KeyStore.getInstance("PKCS12")
+                pkcsKeyStore.load(
+                    ByteArrayInputStream(
+                        Base64.decode(payloadContent ?: throw CredentialParseError(
+                            "Missing client cert/key bundle",
+                            null
+                        ), Base64.DEFAULT)
+                    ),
+                    keyPassword
+                )
+
+                val certAlias = pkcsKeyStore.aliases().nextElement()
+                val certificate = pkcsKeyStore.getCertificate(certAlias) as? X509Certificate
+                val key = pkcsKeyStore.getKey(certAlias, keyPassword) as? PrivateKey
+
+                clientCert = certificate
+                clientKey = key
             }
         }
     }
@@ -241,34 +276,6 @@ class CredentialParser(private val parser: XmlPullParser) {
             landingPage = landingPage
         )
 
-        // parse the CA
-        val parsedCaCert = CertificateFactory.getInstance("X.509")
-            .generateCertificate(
-                ByteArrayInputStream(
-                    Base64.decode(caCert ?: throw CredentialParseError(
-                        "Missing CA cert",
-                        null
-                    ), Base64.DEFAULT)
-                )
-            ) as X509Certificate
-
-        // decode/parse the client cert/key bundle
-        val pkcsKeyStore = KeyStore.getInstance("PKCS12")
-        pkcsKeyStore.load(
-            ByteArrayInputStream(
-                Base64.decode(clientCertKey ?: throw CredentialParseError(
-                    "Missing client cert/key bundle",
-                    null
-                ), Base64.DEFAULT)
-            ),
-            clientKeyPassword?.toCharArray() ?: throw CredentialParseError(
-                "Missing client key encryption password",
-                null
-            )
-        )
-
-        val aliases = pkcsKeyStore.aliases()
-
         return Network(
             ssid = ssid ?: throw CredentialParseError(
                 "Could not find SSID",
@@ -284,9 +291,42 @@ class CredentialParser(private val parser: XmlPullParser) {
                 "Could not find EAP identity",
                 null
             ),
-            caCertificate = parsedCaCert,
-            // TODO: figure out how to parse encrypted PKCS#12
-            clientCertificate = null
+            caCertificate = caCert ?: throw CredentialParseError(
+                "Missing CA certificate",
+                null
+            ),
+            clientCertificate = clientCert ?: throw CredentialParseError(
+                "Missing client certificate",
+                null
+            )
         )
+    }
+
+    fun storePrivateKeys(networkId: Int) {
+        // store private keys in the system KeyStore, identified by the specified networkId
+
+        val ks = KeyStore.getInstance("AndroidKeyStore")
+        // no load parameters for the AndroidKeyStore
+        ks.load(null)
+
+        val protectionBuilder = KeyProtection.Builder(0)
+            .setUserAuthenticationRequired(true)
+
+        // used setAuthParams when we can, otherwise use the deprecated method
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            protectionBuilder.setUserAuthenticationParameters(0, 0)
+        } else {
+            @Suppress("DEPRECATION")
+            protectionBuilder
+                .setUserAuthenticationValidityDurationSeconds(-1)
+        }
+
+        val protection = protectionBuilder.build()
+
+        val pkKeyEntry = PrivateKeyEntry(clientKey, arrayOf(clientCert))
+
+        // EAP-TLS: client key
+        val pkAlias = Network.EAP_TLS_PK_ALIAS.format(networkId)
+        ks.setEntry(pkAlias, pkKeyEntry, protection)
     }
 }
