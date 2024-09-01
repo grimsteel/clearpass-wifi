@@ -6,8 +6,6 @@ import android.net.Uri
 import android.net.wifi.WifiEnterpriseConfig
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSuggestion
-import android.security.keystore.KeyProperties
-import android.security.keystore.KeyProtection
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,12 +43,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.grimsteel.clearpasswifi.R
 import com.grimsteel.clearpasswifi.data.Network
 import com.grimsteel.clearpasswifi.data.WpaMethod
+import com.grimsteel.clearpasswifi.data.commonName
 import com.grimsteel.clearpasswifi.ui.MainViewModelProvider
 import java.security.KeyStore
 import java.security.KeyStore.PrivateKeyEntry
 import java.text.DateFormat
 import java.text.SimpleDateFormat
-import javax.security.auth.x500.X500Principal
 
 @Composable
 fun EditScreen(vm: EditViewModel = viewModel(factory = MainViewModelProvider.Factory)) {
@@ -220,13 +218,9 @@ fun EditScreen(vm: EditViewModel = viewModel(factory = MainViewModelProvider.Fac
                         text = stringResource(R.string.ca_certificate),
                         style = MaterialTheme.typography.labelMedium
                     )
-                    val cn = it.subjectX500Principal.name
-                        .split(",")
-                        .map { it.split("=") }
-                        .find { it[0] == "CN" };
 
                     Text(
-                        text = cn?.get(1) ?: stringResource(R.string.unknown_cn),
+                        text = it.commonName() ?: stringResource(R.string.unknown_cn),
                         modifier = Modifier.wrapContentHeight()
                     )
                 }
@@ -255,13 +249,8 @@ fun EditScreen(vm: EditViewModel = viewModel(factory = MainViewModelProvider.Fac
                         style = MaterialTheme.typography.labelMedium
                     )
 
-                    val cn = it.subjectX500Principal.name
-                        .split(",")
-                        .map { it.split("=") }
-                        .find { it[0] == "CN" }
-
                     Text(
-                        text = cn?.get(1) ?: stringResource(R.string.unknown_cn)
+                        text = it.commonName() ?: stringResource(R.string.unknown_cn)
                     )
                 }
                 IconButton(
@@ -311,8 +300,7 @@ fun EditScreen(vm: EditViewModel = viewModel(factory = MainViewModelProvider.Fac
                 }
                 val pkEntry = keyStore.getEntry(
                     Network.EAP_TLS_PK_ALIAS.format(it.id),
-                    // TODO: use actual protection
-                    null
+                    Network.PRIVATE_KEY_PROTECTION
                 ) as? PrivateKeyEntry
 
                 val pk = pkEntry?.privateKey
