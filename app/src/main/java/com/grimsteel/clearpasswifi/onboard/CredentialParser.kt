@@ -1,6 +1,7 @@
 package com.grimsteel.clearpasswifi.onboard
 
 import android.os.Build
+import android.security.keystore.KeyProperties
 import android.security.keystore.KeyProtection
 import android.util.Xml
 import com.grimsteel.clearpasswifi.data.Network
@@ -196,12 +197,11 @@ class CredentialParser(private val parser: XmlPullParser) {
                     keyPassword
                 )
 
-                val certAlias = pkcsKeyStore.aliases().nextElement()
-                val certificate = pkcsKeyStore.getCertificate(certAlias) as? X509Certificate
-                val key = pkcsKeyStore.getKey(certAlias, keyPassword) as? PrivateKey
-
-                clientCert = certificate
-                clientKey = key
+                // try getting a cert/key out of each alias
+                pkcsKeyStore.aliases().iterator().forEach { alias ->
+                    (pkcsKeyStore.getCertificate(alias) as? X509Certificate).let { clientCert = it }
+                    (pkcsKeyStore.getKey(alias, keyPassword) as? PrivateKey).let { clientKey = it }
+                }
             }
         }
     }
@@ -324,7 +324,7 @@ class CredentialParser(private val parser: XmlPullParser) {
 
         // used setAuthParams when we can, otherwise use the deprecated method
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            protectionBuilder.setUserAuthenticationParameters(0, 0)
+            protectionBuilder.setUserAuthenticationParameters(0, KeyProperties.AUTH_DEVICE_CREDENTIAL or KeyProperties.AUTH_DEVICE_CREDENTIAL)
         } else {
             @Suppress("DEPRECATION")
             protectionBuilder
