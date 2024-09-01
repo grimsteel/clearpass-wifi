@@ -23,4 +23,6 @@
     <string name="error_details">Error Details</string>
     <string name="no_networks_configured">No networks configured yet...</string>
     <string name="click_plus_add">Click the + to add one!</string>
+    <string name="managed_by">Managed By</string>
+    <string name="open_landing_page">Open landing page</string>
 </resources>

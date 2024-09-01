@@ -16,7 +16,7 @@ interface NetworkDao {
     suspend fun delete(network: Network)
 
     @Query("SELECT * FROM networks WHERE id = :id")
-    fun getNetwork(id: Int): Flow<Network>
+    fun getNetwork(id: String): Flow<Network>
 
     @Query("SELECT * FROM networks WHERE ssid = :ssid ORDER BY createdAt DESC")
     fun getNetworksBySsid(ssid: String): Flow<List<Network>>

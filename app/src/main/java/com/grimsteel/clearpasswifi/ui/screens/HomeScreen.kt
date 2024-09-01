@@ -24,7 +24,7 @@ import java.text.DateFormat
 import java.text.SimpleDateFormat
 
 @Composable
-fun HomeScreen(vm: HomeViewModel = viewModel(factory = MainViewModelProvider.Factory)) {
+fun HomeScreen(navigateToEdit: (id: String) -> Unit, vm: HomeViewModel = viewModel(factory = MainViewModelProvider.Factory)) {
     val networks by vm.networks.collectAsState()
     val dateFormat = SimpleDateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
 
@@ -43,7 +43,10 @@ fun HomeScreen(vm: HomeViewModel = viewModel(factory = MainViewModelProvider.Fac
             }
             items(items = networks, key = { it.id }) {
                 ElevatedCard(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        navigateToEdit(it.id)
+                    }
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp, 8.dp),
@@ -76,13 +79,5 @@ fun HomeScreen(vm: HomeViewModel = viewModel(factory = MainViewModelProvider.Fac
                 text = stringResource(R.string.click_plus_add)
             )
         }
-    }
-}
-
-@Preview
-@Composable
-fun HomeScreenPreview() {
-    AppTheme(darkTheme = true) {
-        HomeScreen()
     }
 }

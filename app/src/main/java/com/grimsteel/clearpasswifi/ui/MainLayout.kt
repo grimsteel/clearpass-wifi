@@ -22,18 +22,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.grimsteel.clearpasswifi.R
 import com.grimsteel.clearpasswifi.ui.screens.*
 import com.grimsteel.clearpasswifi.ui.theme.AppTheme
 
-enum class NavDestination(val id: String) {
+enum class NavDestination(val id: String, val route: String = id) {
     Home("home"),
     Import("import"),
-    Edit("edit")
+    Edit("edit", "edit/{id}")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,16 +88,22 @@ fun MainLayout() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = NavDestination.Home.id,
+            startDestination = NavDestination.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(route = NavDestination.Home.id) {
-                HomeScreen()
+            composable(route = NavDestination.Home.route) {
+                // navigate to the edit screen for the specified network
+                HomeScreen({ navController.navigate("${NavDestination.Edit.id}/${it}")})
             }
-            composable(route = NavDestination.Edit.id) {
+            composable(
+                route = NavDestination.Edit.route,
+                arguments = listOf(navArgument("id") {
+                    type = NavType.StringType
+                })
+            ) {
                 EditScreen()
             }
-            composable(route = NavDestination.Import.id) {
+            composable(route = NavDestination.Import.route) {
                 ImportScreen(snackbarHostState)
             }
         }

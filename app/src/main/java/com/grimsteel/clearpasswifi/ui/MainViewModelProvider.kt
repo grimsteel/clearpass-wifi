@@ -1,10 +1,12 @@
 package com.grimsteel.clearpasswifi.ui
 
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.grimsteel.clearpasswifi.MainApplication
+import com.grimsteel.clearpasswifi.ui.screens.EditViewModel
 import com.grimsteel.clearpasswifi.ui.screens.HomeViewModel
 import com.grimsteel.clearpasswifi.ui.screens.ImportViewModel
 
@@ -18,6 +20,13 @@ object MainViewModelProvider {
 
         initializer {
             HomeViewModel(
+                mainApplication().networkDao
+            )
+        }
+
+        initializer {
+            EditViewModel(
+                createSavedStateHandle(),
                 mainApplication().networkDao
             )
         }
