@@ -21,8 +21,11 @@
     <string name="saved_networks">Saved networks:</string>
     <string name="created_on">Created on: %1$s</string>
     <string name="error_details">Error Details</string>
-    <string name="no_networks_configured">No networks configured yet...</string>
+    <string name="no_networks_configured">No networks configured yet…</string>
     <string name="click_plus_add">Click the + to add one!</string>
     <string name="managed_by">Managed By</string>
     <string name="open_landing_page">Open landing page</string>
+    <string name="organization">Organization</string>
+    <string name="edit_display_name">Edit display name:</string>
+    <string name="cancel">Cancel</string>
 </resources>

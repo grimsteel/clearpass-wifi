@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -23,4 +24,7 @@ interface NetworkDao {
 
     @Query("SELECT * FROM networks ORDER BY createdAt DESC")
     fun getAllNetworks(): Flow<List<Network>>
+
+    @Update
+    suspend fun updateNetwork(network: Network)
 }
