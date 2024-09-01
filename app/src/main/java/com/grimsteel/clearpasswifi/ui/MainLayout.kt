@@ -104,7 +104,10 @@ fun MainLayout() {
                 EditScreen()
             }
             composable(route = NavDestination.Import.route) {
-                ImportScreen(snackbarHostState)
+                ImportScreen(
+                    snackbarHostState,
+                    { navController.navigate("${NavDestination.Edit.id}/${it}")}
+                )
             }
         }
     }

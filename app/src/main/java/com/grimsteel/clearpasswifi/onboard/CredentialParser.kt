@@ -1,8 +1,5 @@
 package com.grimsteel.clearpasswifi.onboard
 
-import android.os.Build
-import android.security.keystore.KeyProperties
-import android.security.keystore.KeyProtection
 import android.util.Xml
 import com.grimsteel.clearpasswifi.data.Network
 import com.grimsteel.clearpasswifi.data.Organization
@@ -319,24 +316,10 @@ class CredentialParser(private val parser: XmlPullParser) {
         // no load parameters for the AndroidKeyStore
         ks.load(null)
 
-        val protectionBuilder = KeyProtection.Builder(0)
-            .setUserAuthenticationRequired(true)
-
-        // used setAuthParams when we can, otherwise use the deprecated method
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            protectionBuilder.setUserAuthenticationParameters(0, KeyProperties.AUTH_DEVICE_CREDENTIAL or KeyProperties.AUTH_DEVICE_CREDENTIAL)
-        } else {
-            @Suppress("DEPRECATION")
-            protectionBuilder
-                .setUserAuthenticationValidityDurationSeconds(-1)
-        }
-
-        val protection = protectionBuilder.build()
-
         val pkKeyEntry = PrivateKeyEntry(clientKey, arrayOf(clientCert))
 
         // EAP-TLS: client key
         val pkAlias = Network.EAP_TLS_PK_ALIAS.format(id.value)
-        ks.setEntry(pkAlias, pkKeyEntry, protection)
+        ks.setEntry(pkAlias, pkKeyEntry, Network.PRIVATE_KEY_PROTECTION)
     }
 }

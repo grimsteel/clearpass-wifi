@@ -14,12 +14,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.grimsteel.clearpasswifi.R
 import com.grimsteel.clearpasswifi.ui.MainViewModelProvider
-import com.grimsteel.clearpasswifi.ui.theme.AppTheme
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 

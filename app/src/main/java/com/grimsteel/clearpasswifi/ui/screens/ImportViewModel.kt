@@ -6,7 +6,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import com.grimsteel.clearpasswifi.R
-import com.grimsteel.clearpasswifi.data.Network
 import com.grimsteel.clearpasswifi.data.NetworkDao
 import com.grimsteel.clearpasswifi.onboard.CredentialParser
 import com.grimsteel.clearpasswifi.onboard.getCredentials
@@ -47,13 +46,16 @@ class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
         return stringBuilder.toString()
     }
 
-    private suspend fun handleParser(parser: CredentialParser) {
+    private suspend fun handleParser(parser: CredentialParser): String {
         // parse the credentials file and store data
 
         parser.parse()
         val network = parser.toNetwork()
         parser.storePrivateKeys()
         networkDao.insert(network)
+
+        // return the id so we can navigate to the edit screen
+        return network.id
     }
 
     fun useQuick1xFile(context: Context, fileUri: Uri) {
@@ -83,17 +85,66 @@ class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
         setLoading(false)
     }
 
-    suspend fun useXmlCredentialsFile(context: Context, fileUri: Uri) {
+    /**
+     * load credentials from the specified XML credentials file
+     * creates a network object in the database
+     * @return the id of the newly generated network
+     */
+    suspend fun useXmlCredentialsFile(context: Context, fileUri: Uri): String? {
         setLoading(true)
 
         try {
-            context.contentResolver.openInputStream(fileUri)?.use {
+            return context.contentResolver.openInputStream(fileUri)?.use {
                 val parser = CredentialParser(it)
                 handleParser(parser)
             }
         } finally {
             setLoading(false)
         }
+    }
+
+    /**
+     * load credentials from the set URL/OTP
+     * creates a network object in the database
+     * @return the id of the newly generated network
+      */
+    suspend fun loadCredentials(context: Context): String? {
+        setLoading(true)
+
+        val state = _importScreenState.value
+        if (state.networkOtp.isNotEmpty() && state.networkUrl.isNotEmpty()) {
+            // make sure the url is actually a URL
+            try {
+                val url = URL(state.networkUrl)
+                val response = getCredentials(
+                    url,
+                    state.networkOtp
+                )
+                val parser = CredentialParser(response)
+                return handleParser(parser)
+            } catch (e: MalformedURLException) {
+                Log.w("ImportViewModel", "Invalid URL: $e")
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.invalid_url),
+                    Toast.LENGTH_SHORT
+                )
+                    .show()
+            } finally {
+                setLoading(false)
+            }
+        } else {
+            Toast.makeText(
+                context,
+                context.getString(R.string.missing_url_otp),
+                Toast.LENGTH_LONG
+            )
+                .show()
+        }
+
+        setLoading(false)
+
+        return null
     }
 
     fun updateNetworkUrl(url: String) {
@@ -118,43 +169,5 @@ class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
         _importScreenState.update {
             it.copy(loading = loading)
         }
-    }
-
-    // load credentials from the set URL/OTP
-    suspend fun loadCredentials(context: Context) {
-        setLoading(true)
-
-        val state = _importScreenState.value
-        if (state.networkOtp.isNotEmpty() && state.networkUrl.isNotEmpty()) {
-            // make sure the url is actually a URL
-            try {
-                val url = URL(state.networkUrl)
-                val response = getCredentials(
-                    url,
-                    state.networkOtp
-                )
-                val parser = CredentialParser(response)
-                handleParser(parser)
-            } catch (e: MalformedURLException) {
-                Log.w("ImportViewModel", "Invalid URL: $e")
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.invalid_url),
-                    Toast.LENGTH_SHORT
-                )
-                    .show()
-            } finally {
-                setLoading(false)
-            }
-        } else {
-            Toast.makeText(
-                context,
-                context.getString(R.string.missing_url_otp),
-                Toast.LENGTH_LONG
-            )
-                .show()
-        }
-
-        setLoading(false)
     }
 }

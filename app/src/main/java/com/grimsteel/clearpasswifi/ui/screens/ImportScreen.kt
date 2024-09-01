@@ -38,7 +38,11 @@ import com.grimsteel.clearpasswifi.ui.MainViewModelProvider
 import kotlinx.coroutines.launch
 
 @Composable
-fun ImportScreen(snackbar: SnackbarHostState, vm: ImportViewModel = viewModel(factory = MainViewModelProvider.Factory)) {
+fun ImportScreen(
+    snackbar: SnackbarHostState,
+    navigateToEdit: (id: String) -> Unit,
+    vm: ImportViewModel = viewModel(factory = MainViewModelProvider.Factory)
+) {
     val uiState by vm.importScreenState.collectAsState()
 
     val context = LocalContext.current
@@ -60,7 +64,9 @@ fun ImportScreen(snackbar: SnackbarHostState, vm: ImportViewModel = viewModel(fa
     val loadCredentials = {
         coroutineScope.launch {
             try {
-                vm.loadCredentials(context)
+                vm.loadCredentials(context)?.let {
+                    navigateToEdit(it)
+                }
             } catch (e: OnboardError) {
                 showSnackbar(e, context.getString(R.string.network_error))
             } catch (e: CredentialParseError) {
@@ -75,7 +81,9 @@ fun ImportScreen(snackbar: SnackbarHostState, vm: ImportViewModel = viewModel(fa
         if (uri != null) {
             coroutineScope.launch {
                 try {
-                    vm.useXmlCredentialsFile(context, uri)
+                    vm.useXmlCredentialsFile(context, uri)?.let {
+                        navigateToEdit(it)
+                    }
                 } catch (e: CredentialParseError) {
                     showSnackbar(e, context.getString(R.string.parse_error))
                 }
