@@ -28,4 +28,13 @@
     <string name="organization">Organization</string>
     <string name="edit_display_name">Edit display name:</string>
     <string name="cancel">Cancel</string>
+    <string name="wpa_method">WPA method:</string>
+    <string name="eap_tls">EAP-TLS</string>
+    <string name="eap_identity">EAP identity:</string>
+    <string name="download">Download</string>
+    <string name="client_certificate">Client certificate:</string>
+    <string name="ca_certificate">CA certificate:</string>
+    <string name="unknown_cn">Unknown CN</string>
+    <string name="secure_device_storage">Stored in secure device storage</string>
+    <string name="private_key">Private key:</string>
 </resources>
