@@ -18,4 +18,9 @@
     <string name="ok">OK</string>
     <string name="back">Back</string>
     <string name="parse_error">Could not parse credentials file</string>
+    <string name="saved_networks">Saved networks:</string>
+    <string name="created_on">Created on: %1$s</string>
+    <string name="error_details">Error Details</string>
+    <string name="no_networks_configured">No networks configured yet...</string>
+    <string name="click_plus_add">Click the + to add one!</string>
 </resources>

@@ -178,7 +178,7 @@ fun ImportScreen(snackbar: SnackbarHostState, vm: ImportViewModel = viewModel(fa
                 icon = {
                     Icon(Icons.Rounded.Warning, contentDescription = stringResource(R.string.error))
                 },
-                title = { Text(text = stringResource(R.string.network_error)) },
+                title = { Text(text = stringResource(R.string.error_details)) },
                 text = { Text(text = uiState.dialogErrorMessage) }
             )
         }
