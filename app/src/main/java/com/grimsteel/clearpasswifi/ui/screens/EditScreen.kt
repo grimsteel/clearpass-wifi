@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -359,18 +360,12 @@ fun EditScreen(vm: EditViewModel = viewModel(factory = MainViewModelProvider.Fac
             HorizontalDivider()
         }
 
-        /*// button to add network to saved networks
+        // button to add network to saved networks
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    network
-                        ?.toWifiSuggestion()
-                        ?.let {
-                            val wifiManager =
-                                context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-                            wifiManager.addNetworkSuggestions(listOf(it))
-                        }
+                    vm.addSavedNetwork(context)
                 },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
@@ -397,6 +392,6 @@ fun EditScreen(vm: EditViewModel = viewModel(factory = MainViewModelProvider.Fac
         }
         FilledTonalButton(onClick = { /*TODO*/ }) {
             Text(text = "Delete")
-        }*/
+        }
     }
 }

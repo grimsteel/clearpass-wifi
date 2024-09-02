@@ -1,5 +1,6 @@
 package com.grimsteel.clearpasswifi.data
 
+import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiEnterpriseConfig
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSuggestion
@@ -14,7 +15,9 @@ import java.security.KeyStore.SecretKeyEntry
 import java.security.PrivateKey
 import java.security.cert.X509Certificate
 import java.security.spec.PKCS8EncodedKeySpec
+import java.util.BitSet
 import java.util.Date
+import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 
@@ -67,17 +70,11 @@ data class Network(
         return factory.generatePrivate(PKCS8EncodedKeySpec(decoded))
     }
 
-    /**
-     * Create a WifiNetworkSuggestion for this network
-     * Only works on Q and greater
-     */
-    @RequiresApi(Build.VERSION_CODES.Q)
-    fun toWifiSuggestion(): WifiNetworkSuggestion? {
-        // retrieve pk from secure storage
+    private fun createEapConfig(): WifiEnterpriseConfig? {
         val pk = getPrivateKey()
 
-        if (pk != null && clientCertificate != null) {
-            val eapConfig = WifiEnterpriseConfig().also {
+        return if (pk != null && clientCertificate != null) {
+            WifiEnterpriseConfig().also {
                 it.identity = identity
                 it.domainSuffixMatch = domainSuffixMatch
                 it.caCertificate = caCertificate
@@ -86,16 +83,43 @@ data class Network(
                 }
                 it.setClientKeyEntry(pk, clientCertificate)
             }
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Create a WifiConfiguration for this network
+     * Only works on P and lower
+     */
+    @OptIn(ExperimentalStdlibApi::class)
+    @Suppress("DEPRECATION")
+    fun toWifiConfig(): WifiConfiguration {
+        return createEapConfig().let {
+            val wifiConfig = WifiConfiguration()
+            wifiConfig.enterpriseConfig = it
+            wifiConfig.SSID = ssid.toByteArray().toHexString()
+            //wifiConfig.networkId = UUID.fromString(id).hashCode()
+            wifiConfig.status = WifiConfiguration.Status.ENABLED
+            wifiConfig
+        }
+    }
+
+    /**
+     * Create a WifiNetworkSuggestion for this network
+     * Only works on Q and greater
+     */
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun toWifiSuggestion(): WifiNetworkSuggestion? {
+        return createEapConfig()?.let {
             val suggestion = WifiNetworkSuggestion.Builder()
                 .setSsid(ssid)
-                .setWpa2EnterpriseConfig(eapConfig)
+                .setWpa2EnterpriseConfig(it)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 suggestion.setMacRandomizationSetting(WifiNetworkSuggestion.RANDOMIZATION_PERSISTENT)
             }
             return suggestion.build()
-        } else {
-            return null
         }
     }
 

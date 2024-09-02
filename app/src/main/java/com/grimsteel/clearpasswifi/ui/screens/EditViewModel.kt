@@ -1,8 +1,12 @@
 package com.grimsteel.clearpasswifi.ui.screens
 
+import android.content.Context
+import android.content.Intent
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -81,6 +85,24 @@ class EditViewModel(savedStateHandle: SavedStateHandle, private val networkDao: 
             wifiManager.removeNetworkSuggestions(listOf(_uiState.value.existingSuggestedNetwork))
         }
         network.value?.let { refreshExistingSuggestedNetwork(it) }
+    }
+
+    fun addSavedNetwork(context: Context) {
+        // R and up -- wifi network suggestion
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            network.value?.toWifiSuggestion()?.let {
+                val intent = Intent(Settings.ACTION_WIFI_ADD_NETWORKS)
+                intent.putExtra(Settings.EXTRA_WIFI_NETWORK_LIST, arrayListOf(it))
+                context.startActivity(intent)
+            }
+        } else if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) { // P and below - wifiManager.addNetwork
+            // use the deprecated method
+            @Suppress("DEPRECATION")
+            network.value?.toWifiConfig()?.let { wifiManager.addNetwork(it) }
+        } else {
+            // idk what happens on Q
+            Toast.makeText(context, ":(", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun refreshExistingSuggestedNetwork(network: Network) {
