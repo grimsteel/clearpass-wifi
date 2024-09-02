@@ -13,7 +13,6 @@ import java.io.InputStream
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import android.util.Base64
-import android.util.Log
 import java.security.KeyStore
 import java.security.PrivateKey
 import java.util.Date

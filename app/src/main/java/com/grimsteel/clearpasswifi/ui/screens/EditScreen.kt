@@ -3,23 +3,26 @@ package com.grimsteel.clearpasswifi.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.net.wifi.WifiManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -322,17 +325,78 @@ fun EditScreen(vm: EditViewModel = viewModel(factory = MainViewModelProvider.Fac
             HorizontalDivider()
         }
 
-        // button to add network suggestion
-        Button(onClick = {
-            network?.toWifiSuggestion()?.let {
-                val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
-                wifiManager.addNetworkSuggestions(listOf(it))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // button to add network suggestion
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        vm.toggleNetworkSuggestion()
+                    },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(if (uiState.existingSuggestedNetwork == null) R.string.add_network_suggestion else R.string.remove_network_suggestion),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = stringResource(R.string.network_suggestion_description),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                Box(
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (uiState.existingSuggestedNetwork == null) Icons.Rounded.Add else Icons.Rounded.Clear,
+                        contentDescription = stringResource(if (uiState.existingSuggestedNetwork == null) R.string.add_network_suggestion else R.string.remove_network_suggestion)
+                    )
+                }
             }
-        }) {
-            Text(text = "Add Wi-Fi network suggestion")
+            HorizontalDivider()
+        }
+
+        /*// button to add network to saved networks
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    network
+                        ?.toWifiSuggestion()
+                        ?.let {
+                            val wifiManager =
+                                context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+                            wifiManager.addNetworkSuggestions(listOf(it))
+                        }
+                },
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.add_saved_network),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = stringResource(R.string.saved_network_description),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Box(
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Add,
+                    contentDescription = stringResource(R.string.add_saved_network)
+                )
+            }
         }
         FilledTonalButton(onClick = { /*TODO*/ }) {
-            Text(text = "Add to your Wi-Fi networks")
-        }
+            Text(text = "Delete")
+        }*/
     }
 }

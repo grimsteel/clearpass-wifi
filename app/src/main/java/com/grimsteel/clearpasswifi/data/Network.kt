@@ -1,6 +1,7 @@
 package com.grimsteel.clearpasswifi.data
 
 import android.net.wifi.WifiEnterpriseConfig
+import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -68,7 +69,7 @@ data class Network(
 
     /**
      * Create a WifiNetworkSuggestion for this network
-     * Only works on S and greater
+     * Only works on Q and greater
      */
     @RequiresApi(Build.VERSION_CODES.Q)
     fun toWifiSuggestion(): WifiNetworkSuggestion? {
@@ -87,12 +88,30 @@ data class Network(
             }
             val suggestion = WifiNetworkSuggestion.Builder()
                 .setSsid(ssid)
-                .setMacRandomizationSetting(WifiNetworkSuggestion.RANDOMIZATION_PERSISTENT)
                 .setWpa2EnterpriseConfig(eapConfig)
-                .build()
-            return suggestion
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                suggestion.setMacRandomizationSetting(WifiNetworkSuggestion.RANDOMIZATION_PERSISTENT)
+            }
+            return suggestion.build()
         } else {
             return null
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun findExistingWifiSuggestion(wifiManager: WifiManager): WifiNetworkSuggestion? {
+        return wifiManager.networkSuggestions.find {
+            // make sure ssids are equal
+            if (it.ssid != this.ssid) return@find false
+
+            // compare enterprise configs if applicable
+            it.enterpriseConfig?.let { eap ->
+                // check identity and enterprise config
+                eap.identity == this.identity && eap.eapMethod == when (this.wpaMethod) {
+                    WpaMethod.EapTls -> WifiEnterpriseConfig.Eap.TLS
+                }
+            } ?: true // return true if there is no enterprise config to check
         }
     }
 

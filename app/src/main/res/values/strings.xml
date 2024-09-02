@@ -37,4 +37,9 @@
     <string name="unknown_cn">Unknown CN</string>
     <string name="secure_device_storage">Stored in secure device storage</string>
     <string name="private_key">Private key:</string>
+    <string name="network_suggestion_description">Adds a suggestion that\'s managed by the app and cannot be edited by you. Your device will automatically connect when in range.</string>
+    <string name="add_network_suggestion">Add network suggestion</string>
+    <string name="add_saved_network">Add to your networks</string>
+    <string name="saved_network_description">Adds a network to your list of saved networks that can be edited by you.</string>
+    <string name="remove_network_suggestion">Remove network suggestion</string>
 </resources>
