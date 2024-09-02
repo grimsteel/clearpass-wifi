@@ -34,6 +34,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,6 +49,7 @@ import com.grimsteel.clearpasswifi.data.WpaMethod
 import com.grimsteel.clearpasswifi.data.commonName
 import com.grimsteel.clearpasswifi.data.toPEM
 import com.grimsteel.clearpasswifi.ui.MainViewModelProvider
+import kotlinx.coroutines.launch
 import java.io.FileOutputStream
 import java.text.DateFormat
 import java.text.SimpleDateFormat
@@ -66,11 +68,13 @@ fun writeToFile(fileUri: Uri?, data: String?, context: Context) {
 }
 
 @Composable
-fun EditScreen(vm: EditViewModel = viewModel(factory = MainViewModelProvider.Factory)) {
+fun EditScreen(goHome: () -> Unit, vm: EditViewModel = viewModel(factory = MainViewModelProvider.Factory)) {
     val dateFormat = SimpleDateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM)
 
     val network by vm.network.collectAsState()
     val uiState by vm.uiState.collectAsState()
+
+    val scope = rememberCoroutineScope()
 
     // edit display name modal
     if (uiState.showEditDisplayNameModal) {
@@ -390,7 +394,12 @@ fun EditScreen(vm: EditViewModel = viewModel(factory = MainViewModelProvider.Fac
                 )
             }
         }
-        FilledTonalButton(onClick = { /*TODO*/ }) {
+        FilledTonalButton(onClick = {
+            scope.launch {
+                vm.deleteNetwork()
+                goHome()
+            }
+        }) {
             Text(text = "Delete")
         }
     }

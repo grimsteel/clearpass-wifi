@@ -114,4 +114,14 @@ class EditViewModel(savedStateHandle: SavedStateHandle, private val networkDao: 
             }
         }
     }
+
+    suspend fun deleteNetwork() {
+        network.value?.let {
+            // make sure to remove the suggested network
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                wifiManager.removeNetworkSuggestions(listOf(_uiState.value.existingSuggestedNetwork))
+            }
+            networkDao.delete(it)
+        }
+    }
 }

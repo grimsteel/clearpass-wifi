@@ -101,7 +101,7 @@ fun MainLayout() {
                     type = NavType.StringType
                 })
             ) {
-                EditScreen()
+                EditScreen({ navController.popBackStack(NavDestination.Home.route, false) })
             }
             composable(route = NavDestination.Import.route) {
                 ImportScreen(
