@@ -1,5 +1,7 @@
 package com.grimsteel.clearpasswifi.onboard
 
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 import android.util.Xml
 import com.grimsteel.clearpasswifi.data.Network
 import com.grimsteel.clearpasswifi.data.Organization
@@ -11,11 +13,13 @@ import java.io.InputStream
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import android.util.Base64
+import android.util.Log
 import java.security.KeyStore
-import java.security.KeyStore.PrivateKeyEntry
 import java.security.PrivateKey
 import java.util.Date
 import java.util.UUID
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
 
 class CredentialParseError(message: String, cause: Throwable?) : Exception(message, cause)
 
@@ -33,10 +37,6 @@ class CredentialParser(private val parser: XmlPullParser) {
     private var encryptionType: String? = null
     // 13 = EAP-TLS, 21 = EAP-TTLS, 25 = PEAP
     private var eapType: Int? = null
-
-    private val id = lazy {
-        UUID.randomUUID().toString()
-    }
 
     constructor(contents: InputStream) : this(Xml.newPullParser()){
         this.parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
@@ -253,7 +253,7 @@ class CredentialParser(private val parser: XmlPullParser) {
     }
 
     fun toNetwork(): Network {
-        // include method to add private key to cert store
+        val id = UUID.randomUUID().toString()
 
         val wpaMethod = when (encryptionType) {
             "WPA2" -> {
@@ -286,6 +286,31 @@ class CredentialParser(private val parser: XmlPullParser) {
             null
         )
 
+        val encodedPrivateKey = clientKey?.let {
+            // generate a secret key for encrypting the private key (stores in AndroidKeyStore)
+            val keyGenerator =
+                KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+            val spec = KeyGenParameterSpec
+                .Builder(
+                    Network.KEYSTORE_SECRET_KEY.format(id),
+                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+                )
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .build()
+            keyGenerator.init(spec)
+            val encryptionKey = keyGenerator.generateKey()
+
+            // encrypt the private key
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.ENCRYPT_MODE, encryptionKey)
+            val encoded = cipher.doFinal(it.encoded)
+            cipher.iv + encoded
+        } ?: throw CredentialParseError(
+            "Missing client private key",
+            null
+        )
+
         return Network(
             ssid = ssid,
             createdAt = Date(),
@@ -303,23 +328,10 @@ class CredentialParser(private val parser: XmlPullParser) {
                 "Missing client certificate",
                 null
             ),
-            id = id.value,
+            id = id,
             // by default, ssid + identity
-            displayName = "$ssid ($identity)"
+            displayName = "$ssid ($identity)",
+            clientPrivateKey = encodedPrivateKey
         )
-    }
-
-    fun storePrivateKeys() {
-        // store private keys in the system KeyStore
-
-        val ks = KeyStore.getInstance("AndroidKeyStore")
-        // no load parameters for the AndroidKeyStore
-        ks.load(null)
-
-        val pkKeyEntry = PrivateKeyEntry(clientKey, arrayOf(clientCert))
-
-        // EAP-TLS: client key
-        val pkAlias = Network.EAP_TLS_PK_ALIAS.format(id.value)
-        ks.setEntry(pkAlias, pkKeyEntry, Network.PRIVATE_KEY_PROTECTION)
     }
 }

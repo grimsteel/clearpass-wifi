@@ -51,7 +51,6 @@ class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
 
         parser.parse()
         val network = parser.toNetwork()
-        parser.storePrivateKeys()
         networkDao.insert(network)
 
         // return the id so we can navigate to the edit screen

@@ -1,13 +1,21 @@
 package com.grimsteel.clearpasswifi.data
 
+import android.net.wifi.WifiEnterpriseConfig
+import android.net.wifi.WifiNetworkSuggestion
 import android.os.Build
-import android.security.keystore.KeyProperties
-import android.security.keystore.KeyProtection
+import androidx.annotation.RequiresApi
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.security.KeyFactory
+import java.security.KeyStore
+import java.security.KeyStore.SecretKeyEntry
+import java.security.PrivateKey
 import java.security.cert.X509Certificate
+import java.security.spec.PKCS8EncodedKeySpec
 import java.util.Date
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
 
 @Entity(tableName = "networks")
 data class Network(
@@ -25,36 +33,70 @@ data class Network(
 
     val caCertificate: X509Certificate?,
     val clientCertificate: X509Certificate?,
+    val clientPrivateKey: ByteArray?,
 
     val identity: String?,
     val password: String?,
     val domainSuffixMatch: String?
 ) {
-    companion object {
-        const val EAP_TLS_PK_ALIAS = "%s-eap-tls-private-key"
-        val PRIVATE_KEY_PROTECTION by lazy {
-            val protectionBuilder = KeyProtection.Builder(0)
-                .setUserAuthenticationRequired(true)
+    /**
+     * Decrypt the stored private key
+     */
+    fun getPrivateKey(): PrivateKey? {
+        // load the encryption key
+        val keyStore = KeyStore.getInstance("AndroidKeyStore").apply {
+            load(null)
+        }
+        val encryptionKeyEntry = keyStore.getEntry(
+            KEYSTORE_SECRET_KEY.format(id),
+            null
+        ) as? SecretKeyEntry ?: return null
 
-            // use setAuthParams when we can, otherwise use the deprecated method
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                protectionBuilder.setUserAuthenticationParameters(
-                    0,
-                    KeyProperties.AUTH_DEVICE_CREDENTIAL or KeyProperties.AUTH_DEVICE_CREDENTIAL
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                protectionBuilder
-                    .setUserAuthenticationValidityDurationSeconds(-1)
+        // split the iv/data buffer
+        val iv = clientPrivateKey?.slice(0..<12) ?: return null
+        val data = clientPrivateKey.slice(12..<clientPrivateKey.size)
+
+        // decrypt
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, encryptionKeyEntry.secretKey, GCMParameterSpec(128, iv.toByteArray()))
+        val decoded = cipher.doFinal(data.toByteArray())
+
+        // parse
+        val factory = KeyFactory.getInstance("RSA")
+        return factory.generatePrivate(PKCS8EncodedKeySpec(decoded))
+    }
+
+    /**
+     * Create a WifiNetworkSuggestion for this network
+     * Only works on S and greater
+     */
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun toWifiSuggestion(): WifiNetworkSuggestion? {
+        // retrieve pk from secure storage
+        val pk = getPrivateKey()
+
+        if (pk != null && clientCertificate != null) {
+            val eapConfig = WifiEnterpriseConfig().also {
+                it.identity = identity
+                it.domainSuffixMatch = domainSuffixMatch
+                it.caCertificate = caCertificate
+                it.eapMethod = when (wpaMethod) {
+                    WpaMethod.EapTls -> WifiEnterpriseConfig.Eap.TLS
+                }
+                it.setClientKeyEntry(pk, clientCertificate)
             }
-
-            protectionBuilder.build()
+            val suggestion = WifiNetworkSuggestion.Builder()
+                .setSsid(ssid)
+                .setMacRandomizationSetting(WifiNetworkSuggestion.RANDOMIZATION_PERSISTENT)
+                .setWpa2EnterpriseConfig(eapConfig)
+                .build()
+            return suggestion
+        } else {
+            return null
         }
     }
-}
 
-fun X509Certificate.commonName() = subjectX500Principal.name
-    .split(",")
-    .map { it.split("=") }
-    .find { it[0] == "CN" }
-    ?.get(1)
+    companion object {
+        const val KEYSTORE_SECRET_KEY = "%s-encryption-key"
+    }
+}
