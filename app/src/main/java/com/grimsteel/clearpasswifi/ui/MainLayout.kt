@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -35,7 +36,8 @@ import com.grimsteel.clearpasswifi.ui.theme.AppTheme
 enum class NavDestination(val id: String, val route: String = id) {
     Home("home"),
     Import("import"),
-    Edit("edit", "edit/{id}")
+    Edit("edit", "edit/{id}"),
+    Settings("settings")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,6 +53,7 @@ fun MainLayout() {
     val title = when (currentScreen) {
         NavDestination.Home -> R.string.app_name
         NavDestination.Import -> R.string.add_config
+        NavDestination.Settings -> R.string.settings
         else -> R.string.edit
     }
 
@@ -64,11 +67,23 @@ fun MainLayout() {
                     titleContentColor = MaterialTheme.colorScheme.primary
                 ),
                 navigationIcon = {
+                    // show back button when not on home screen
                     if (currentScreen != NavDestination.Home) {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(
                                 Icons.AutoMirrored.Rounded.ArrowBack,
                                 contentDescription = stringResource(R.string.back)
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    // show settings button on home screen
+                    if (currentScreen == NavDestination.Home) {
+                        IconButton(onClick = { navController.navigate(NavDestination.Settings.id) }) {
+                            Icon(
+                                Icons.Rounded.Settings,
+                                contentDescription = stringResource(R.string.settings)
                             )
                         }
                     }
@@ -108,6 +123,9 @@ fun MainLayout() {
                     snackbarHostState,
                     { navController.navigate("${NavDestination.Edit.id}/${it}")}
                 )
+            }
+            composable(route = NavDestination.Settings.route) {
+                SettingsScreen()
             }
         }
     }
