@@ -42,4 +42,7 @@
     <string name="add_saved_network">Add to your networks</string>
     <string name="saved_network_description">Adds a network to your list of saved networks that can be edited by you.</string>
     <string name="remove_network_suggestion">Remove network suggestion</string>
+    <string name="settings">Settings</string>
+    <string name="saved_error_template">Error: %1$s\nMessage: %2$s\nStack trace:\n</string>
+    <string name="error_message_file">clearpass-wifi-error-message.txt</string>
 </resources>

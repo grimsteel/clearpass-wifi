@@ -1,17 +1,25 @@
 package com.grimsteel.clearpasswifi.ui.screens
 
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -26,10 +34,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.grimsteel.clearpasswifi.R
 import com.grimsteel.clearpasswifi.onboard.CredentialParseError
@@ -56,7 +66,7 @@ fun ImportScreen(
         )
         if (result == SnackbarResult.ActionPerformed) {
             // show dialog
-            vm.updateDialogErrorMessage(e.message ?: "No message")
+            vm.updateDialogError(e)
         }
     }
 
@@ -75,6 +85,7 @@ fun ImportScreen(
         }
     }
 
+    // file pickers and savers
     val xmlCredFilePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
@@ -96,6 +107,27 @@ fun ImportScreen(
         if (uri != null) {
             vm.useQuick1xFile(context, uri)
             loadCredentials()
+        }
+    }
+    val errorFileSaver = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri != null) {
+            // save file
+            coroutineScope.launch {
+                try {
+                    vm.saveErrorMessage(context, uri)
+                    vm.updateDialogError(null)
+                    snackbar.showSnackbar(
+                        "Error message saved successfully",
+                    )
+                } catch (e: Exception) {
+                    Log.e("ImportScreen", "error message save error", e)
+                    snackbar.showSnackbar(
+                        "An error occurred while saving the error message",
+                    )
+                }
+            }
         }
     }
 
@@ -175,20 +207,52 @@ fun ImportScreen(
         }
 
         // if the network request failed, show a dialog with more info
-        if (uiState.dialogErrorMessage.isNotEmpty()) {
-            AlertDialog(
-                onDismissRequest = { vm.updateDialogErrorMessage("") },
-                confirmButton = {
-                    TextButton(onClick = { vm.updateDialogErrorMessage("") }) {
-                        Text(text = stringResource(R.string.ok))
+        if (uiState.dialogError != null) {
+            Dialog (
+                onDismissRequest = { vm.updateDialogError(null) }
+            ) {
+                Card (
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Icon(
+                            Icons.Rounded.Warning,
+                            contentDescription = stringResource(R.string.error),
+                            modifier = Modifier.padding(top = 16.dp)
+                        )
+                        Text(
+                            text = uiState.dialogError?.message ?: "No message",
+                            modifier = Modifier.padding(24.dp, 16.dp)
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            TextButton(
+                                onClick = {  errorFileSaver.launch(context.getString(R.string.error_message_file)) },
+                                modifier = Modifier.padding(8.dp),
+                            ) {
+                                Text("Download Error")
+                            }
+                            TextButton(
+                                onClick = { vm.updateDialogError(null) },
+                                modifier = Modifier.padding(8.dp),
+                            ) {
+                                Text("OK")
+                            }
+                        }
                     }
-                },
-                icon = {
-                    Icon(Icons.Rounded.Warning, contentDescription = stringResource(R.string.error))
-                },
-                title = { Text(text = stringResource(R.string.error_details)) },
-                text = { Text(text = uiState.dialogErrorMessage) }
-            )
+                }
+            }
         }
     }
 }

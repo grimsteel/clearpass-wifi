@@ -16,14 +16,16 @@ import kotlinx.coroutines.flow.update
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.BufferedReader
+import java.io.FileOutputStream
 import java.io.InputStreamReader
+import java.io.PrintWriter
 import java.net.MalformedURLException
 import java.net.URL
 
 data class ImportScreenUiState(
     val networkOtp: String = "",
     val networkUrl: String = "",
-    val dialogErrorMessage: String = "",
+    val dialogError: Exception? = null,
     val loading: Boolean = false
 )
 
@@ -82,6 +84,33 @@ class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
         }
 
         setLoading(false)
+    }
+
+    /**
+     * saves the currently stored error message to the file with uri `fileUri`
+     */
+    fun saveErrorMessage(context: Context, fileUri: Uri) {
+        // no error stored
+        val error = _importScreenState.value.dialogError
+        if (error == null) return
+        
+        context.contentResolver.openFileDescriptor(fileUri, "w")?.use { fd ->
+            FileOutputStream(fd.fileDescriptor).use {
+                val pw = PrintWriter(it)
+                // general error message
+                pw.write(
+                    context.getString(
+                        R.string.saved_error_template,
+                        error.javaClass.simpleName,
+                        error.localizedMessage
+                    ))
+                // stack trace
+                error.printStackTrace(pw)
+                pw.flush()
+                it.flush()
+            }
+        }
+        
     }
 
     /**
@@ -158,9 +187,9 @@ class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
         }
     }
 
-    fun updateDialogErrorMessage(message: String) {
+    fun updateDialogError(error: Exception?) {
         _importScreenState.update {
-            it.copy(dialogErrorMessage = message)
+            it.copy(dialogError = error)
         }
     }
 

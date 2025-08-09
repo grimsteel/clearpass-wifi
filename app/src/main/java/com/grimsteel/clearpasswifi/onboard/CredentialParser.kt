@@ -13,6 +13,8 @@ import java.io.InputStream
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import android.util.Base64
+import android.util.Log
+import java.io.StringReader
 import java.security.KeyStore
 import java.security.PrivateKey
 import java.util.Date
@@ -37,9 +39,14 @@ class CredentialParser(private val parser: XmlPullParser) {
     // 13 = EAP-TLS, 21 = EAP-TTLS, 25 = PEAP
     private var eapType: Int? = null
 
-    constructor(contents: InputStream) : this(Xml.newPullParser()){
+    constructor(contents: String) : this(Xml.newPullParser()){
         this.parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
-        this.parser.setInput(contents, null)
+        this.parser.setInput(StringReader(contents))
+    }
+
+    constructor(input: InputStream) : this(Xml.newPullParser()){
+        this.parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
+        this.parser.setInput(input, null)
     }
 
     private fun skipCurrentTag() {
@@ -207,7 +214,12 @@ class CredentialParser(private val parser: XmlPullParser) {
         try {
             rawParse()
         } catch (e: XmlPullParserException) {
+            Log.e("CredentialParser", "XML parse error", e)
             throw CredentialParseError("XML parse error: ${e.message}", e)
+        } catch (e: Exception) {
+            if (e is CredentialParseError) throw e
+            Log.e("CredentialParser", "Unknown error", e)
+            throw CredentialParseError("Unknown error: ${e.message}", e)
         }
     }
 

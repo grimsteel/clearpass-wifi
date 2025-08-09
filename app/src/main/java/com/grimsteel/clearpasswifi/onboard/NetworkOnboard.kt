@@ -18,8 +18,8 @@ import java.util.Date
 
 class OnboardError(message: String, cause: Throwable?) : RuntimeException(message, cause)
 
-/// Class to get network credentials from onboarding parameters
-suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): InputStream {
+/// Class to get network credentials XML from onboarding parameters
+suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): String {
     val client = HttpClient(CIO)
 
     // prepare the request body
@@ -32,27 +32,34 @@ suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): InputStream {
     val bodyString = body.toString()
 
     try {
+        Log.d("NetworkOnboard", "Making request to $onboardUrl. Body: $body")
+
         val response = client.post(onboardUrl) {
             contentType(ContentType.Application.Json)
             setBody(bodyString)
         }
 
+        val contents = response.bodyAsText()
+
         // check the response status code
         if (response.status != HttpStatusCode.OK) {
             Log.e("NetworkOnboard", "Status code is ${response.status}")
-            val text = response.bodyAsText()
             throw OnboardError(
-                "Onboarding server returned an error: ${response.status} - (\"$text\")",
+                "Onboarding server returned an error: ${response.status} - (\"$contents\")",
                 null
             )
         }
 
-        return response.body()
+        return contents
     } catch (e: RuntimeException) {
-        Log.e("NetworkOnboard", "Runtime exception while fetching data: $e")
-        throw OnboardError("${e.javaClass.simpleName}: ${e.message}", e)
+        if (e is OnboardError) throw e;
+        Log.e("NetworkOnboard", "Runtime exception while fetching data", e)
+        throw OnboardError("${e.javaClass.simpleName}: ${e.message ?: "No message"}", e)
     } catch (e: ConnectException) {
-        Log.e("NetworkOnboard", "Connect exception while fetching data: $e")
-        throw OnboardError("${e.javaClass.simpleName}: ${e.message}", e)
+        Log.e("NetworkOnboard", "Connect exception while fetching data", e)
+        throw OnboardError("${e.javaClass.simpleName}: ${e.message ?: "No message"}", e)
+    } catch (e: Exception) {
+        Log.e("NetworkOnboard", "Unknown error", e)
+        throw OnboardError("Unknown error: ${e.message}.", e)
     }
 }
