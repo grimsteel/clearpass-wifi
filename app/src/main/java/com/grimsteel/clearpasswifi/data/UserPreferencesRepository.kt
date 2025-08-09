@@ -9,13 +9,12 @@ import androidx.datastore.preferences.core.emptyPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.handleCoroutineException
 
 class UserPreferencesRepository(
     private val dataStore: DataStore<Preferences>
 ) {
     companion object {
-        private val ENABLE_DEBUG_LOGGING = booleanPreferencesKey("enable_debug_logging");
+        private val ENABLE_DEBUG_LOGGING = booleanPreferencesKey("enable_debug_logging")
     }
 
     val prefsFlow: Flow<UserPreferences> = dataStore.data
@@ -31,6 +30,7 @@ class UserPreferencesRepository(
             val enableDebugLogging = prefs[ENABLE_DEBUG_LOGGING] ?: false
             UserPreferences(enableDebugLogging)
         }
+
 
     suspend fun updateEnableDebugLogging(enableDebugLogging: Boolean) {
         dataStore.edit { prefs -> prefs[ENABLE_DEBUG_LOGGING] = enableDebugLogging }

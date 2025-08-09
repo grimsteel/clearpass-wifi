@@ -1,12 +1,9 @@
 package com.grimsteel.clearpasswifi
 
-import android.os.Build
 import com.grimsteel.clearpasswifi.data.base64PEMEncode
 import org.junit.Test
 
 import org.junit.Assert.*
-import java.lang.reflect.Field
-import java.lang.reflect.Modifier
 
 /**
  * Example local unit test, which will execute on the development machine (host).

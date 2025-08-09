@@ -53,6 +53,7 @@ import kotlinx.coroutines.launch
 import java.io.FileOutputStream
 import java.text.DateFormat
 import java.text.SimpleDateFormat
+import androidx.core.net.toUri
 
 fun writeToFile(fileUri: Uri?, data: String?, context: Context) {
     fileUri?.let { u ->
@@ -187,7 +188,7 @@ fun EditScreen(goHome: () -> Unit, vm: EditViewModel = viewModel(factory = MainV
                     }
                     if (it.landingPage != null) {
                         // open the landing page when they click the button
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it.landingPage))
+                        val intent = Intent(Intent.ACTION_VIEW, it.landingPage.toUri())
                         IconButton(
                             onClick = { context.startActivity(intent) },
                         ) {

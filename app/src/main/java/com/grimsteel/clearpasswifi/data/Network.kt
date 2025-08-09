@@ -15,9 +15,7 @@ import java.security.KeyStore.SecretKeyEntry
 import java.security.PrivateKey
 import java.security.cert.X509Certificate
 import java.security.spec.PKCS8EncodedKeySpec
-import java.util.BitSet
 import java.util.Date
-import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 

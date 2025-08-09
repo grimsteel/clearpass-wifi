@@ -6,6 +6,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import com.grimsteel.clearpasswifi.R
+import com.grimsteel.clearpasswifi.data.LogManager
 import com.grimsteel.clearpasswifi.data.NetworkDao
 import com.grimsteel.clearpasswifi.onboard.CredentialParser
 import com.grimsteel.clearpasswifi.onboard.getCredentials
@@ -29,7 +30,7 @@ data class ImportScreenUiState(
     val loading: Boolean = false
 )
 
-class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
+class ImportViewModel(private val networkDao: NetworkDao, private val logManager: LogManager) : ViewModel() {
     private val _importScreenState = MutableStateFlow(ImportScreenUiState())
     val importScreenState: StateFlow<ImportScreenUiState> = _importScreenState.asStateFlow()
 
@@ -45,7 +46,12 @@ class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
                 }
             }
         }
-        return stringBuilder.toString()
+        val contents = stringBuilder.toString()
+
+        // log
+        logManager.log("ImportViewModel", "read file $uri: $contents")
+
+        return contents
     }
 
     private suspend fun handleParser(parser: CredentialParser): String {
@@ -73,7 +79,7 @@ class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
                 it.copy(networkOtp = networkOtp, networkUrl = networkUrl)
             }
         } catch (e: JSONException) {
-            Log.w("ImportViewModel", "Invalid JSON: $e")
+            logManager.log("ImportViewModel", "Invalid JSON: $e")
             // failed to parse file
             Toast.makeText(
                 context,
@@ -93,6 +99,8 @@ class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
         // no error stored
         val error = _importScreenState.value.dialogError
         if (error == null) return
+
+        logManager.log("ImportViewModel", "saving error to $fileUri")
         
         context.contentResolver.openFileDescriptor(fileUri, "w")?.use { fd ->
             FileOutputStream(fd.fileDescriptor).use {
@@ -121,6 +129,8 @@ class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
     suspend fun useXmlCredentialsFile(context: Context, fileUri: Uri): String? {
         setLoading(true)
 
+        logManager.log("ImportViewModel", "loading XML credentials file: $fileUri")
+
         try {
             return context.contentResolver.openInputStream(fileUri)?.use {
                 val parser = CredentialParser(it)
@@ -144,9 +154,11 @@ class ImportViewModel(private val networkDao: NetworkDao) : ViewModel() {
             // make sure the url is actually a URL
             try {
                 val url = URL(state.networkUrl)
+                logManager.log("ImportViewModel", "fetching XML credentials using OTP: $url, ${state.networkOtp}")
                 val response = getCredentials(
                     url,
-                    state.networkOtp
+                    state.networkOtp,
+                    logManager
                 )
                 val parser = CredentialParser(response)
                 return handleParser(parser)

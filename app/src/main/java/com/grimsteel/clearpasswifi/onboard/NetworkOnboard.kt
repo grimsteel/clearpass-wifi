@@ -1,8 +1,8 @@
 package com.grimsteel.clearpasswifi.onboard
 
 import android.util.Log
+import com.grimsteel.clearpasswifi.data.LogManager
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -11,7 +11,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import org.json.JSONObject
-import java.io.InputStream
 import java.net.ConnectException
 import java.net.URL
 import java.util.Date
@@ -19,7 +18,7 @@ import java.util.Date
 class OnboardError(message: String, cause: Throwable?) : RuntimeException(message, cause)
 
 /// Class to get network credentials XML from onboarding parameters
-suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): String {
+suspend fun getCredentials(onboardUrl: URL, onboardOtp: String, logger: LogManager): String {
     val client = HttpClient(CIO)
 
     // prepare the request body
@@ -32,7 +31,7 @@ suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): String {
     val bodyString = body.toString()
 
     try {
-        Log.d("NetworkOnboard", "Making request to $onboardUrl. Body: $body")
+        logger.log("NetworkOnboard", "Making request to $onboardUrl. Body: $body")
 
         val response = client.post(onboardUrl) {
             contentType(ContentType.Application.Json)
@@ -40,6 +39,8 @@ suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): String {
         }
 
         val contents = response.bodyAsText()
+
+        logger.log("NetworkOnboard", "Received status ${response.status}, body $body")
 
         // check the response status code
         if (response.status != HttpStatusCode.OK) {
@@ -52,7 +53,7 @@ suspend fun getCredentials(onboardUrl: URL, onboardOtp: String): String {
 
         return contents
     } catch (e: RuntimeException) {
-        if (e is OnboardError) throw e;
+        if (e is OnboardError) throw e
         Log.e("NetworkOnboard", "Runtime exception while fetching data", e)
         throw OnboardError("${e.javaClass.simpleName}: ${e.message ?: "No message"}", e)
     } catch (e: ConnectException) {
