@@ -104,18 +104,18 @@ class ImportViewModel(private val networkDao: NetworkDao, private val logManager
         
         context.contentResolver.openFileDescriptor(fileUri, "w")?.use { fd ->
             FileOutputStream(fd.fileDescriptor).use {
-                val pw = PrintWriter(it)
-                // general error message
-                pw.write(
-                    context.getString(
-                        R.string.saved_error_template,
-                        error.javaClass.simpleName,
-                        error.localizedMessage
-                    ))
-                // stack trace
-                error.printStackTrace(pw)
-                pw.flush()
-                it.flush()
+                PrintWriter(it).use { pw ->
+                    // general error message
+                    pw.write(
+                        context.getString(
+                            R.string.saved_error_template,
+                            error.javaClass.simpleName,
+                            error.localizedMessage
+                        )
+                    )
+                    // stack trace
+                    error.printStackTrace(pw)
+                }
             }
         }
         

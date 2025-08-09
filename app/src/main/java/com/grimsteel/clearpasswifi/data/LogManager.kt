@@ -1,10 +1,12 @@
 package com.grimsteel.clearpasswifi.data
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -45,5 +47,23 @@ class LogManager(private val prefs: UserPreferencesRepository, private val conte
         context.openFileOutput(DEBUG_LOG_FILENAME, Context.MODE_APPEND).use {
             it.write(fullMessage.toByteArray())
         }
+    }
+
+    /**
+     * copy all logs to the `file` content uri
+     */
+    fun saveLogsTo(file: Uri) {
+        context.contentResolver.openOutputStream(file, "w")?.use { out ->
+            context.openFileInput(DEBUG_LOG_FILENAME).use { input ->
+                input.copyTo(out)
+            }
+        }
+    }
+
+    /**
+     * delete all stored debug logs
+     */
+    fun delete() {
+        context.deleteFile(DEBUG_LOG_FILENAME)
     }
 }

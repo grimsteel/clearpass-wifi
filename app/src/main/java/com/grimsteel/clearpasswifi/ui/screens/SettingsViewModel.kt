@@ -1,5 +1,6 @@
 package com.grimsteel.clearpasswifi.ui.screens
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grimsteel.clearpasswifi.data.LogManager
@@ -16,7 +17,14 @@ class SettingsViewModel(private val prefsRepository: UserPreferencesRepository, 
     fun enableDebugLogging(enable: Boolean) {
         viewModelScope.launch {
             prefsRepository.updateEnableDebugLogging(enable)
-            logManager.log("SettingsViewModel", "set enableDebugLogging = $enable")
+
+            if (!enable) {
+                logManager.delete()
+            }
         }
+    }
+
+    fun saveDebugLogs(uri: Uri) {
+        logManager.saveLogsTo(uri)
     }
 }

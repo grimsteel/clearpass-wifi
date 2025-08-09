@@ -125,7 +125,7 @@ fun MainLayout() {
                 )
             }
             composable(route = NavDestination.Settings.route) {
-                SettingsScreen()
+                SettingsScreen(snackbarHostState)
             }
         }
     }
